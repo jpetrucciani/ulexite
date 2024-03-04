@@ -9,6 +9,9 @@
 let
   name = "ulexite";
 
+  inherit (pkgs.stdenv) isAarch64 isDarwin;
+  isM1 = isDarwin && isAarch64;
+  osSpecific = if isM1 then with pkgs.darwin.apple_sdk_11_0.frameworks; [CoreFoundation] else [];
 
   tools = with pkgs; {
     cli = [
@@ -16,10 +19,11 @@ let
       nixpkgs-fmt
     ];
     go = [
+      clang
       go
       go-tools
       gopls
-    ];
+    ] ++ osSpecific;
     scripts = pkgs.lib.attrsets.attrValues scripts;
   };
 
