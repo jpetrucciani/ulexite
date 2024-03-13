@@ -30,7 +30,7 @@ func noOmitFloat(f float32) float32 {
 
 func oaiClient(cCtx *cli.Context) *openai.Client {
 	endpoint := cCtx.String("ai_endpoint")
-	config := openai.DefaultConfig("")
+	config := openai.DefaultConfig(cCtx.String("ai_api_key"))
 	config.BaseURL = endpoint
 	return openai.NewClientWithConfig(config)
 }
@@ -45,7 +45,7 @@ func query(cCtx *cli.Context, systemMessage string, userMessage string) string {
 			TopP:        noOmitFloat(0.95),
 			MaxTokens:   120,
 			Seed:        &SEED,
-			Stop:        []string{"</s>"},
+			Stop:        []string{"</s>", "<|im_end|>"},
 			Messages: []openai.ChatCompletionMessage{
 				{
 					Role:    openai.ChatMessageRoleSystem,
@@ -234,6 +234,12 @@ func main() {
 				Usage:   "the host and port for an openai-compatible endpoint to use for summarization",
 				EnvVars: []string{"ULEXITE_AI_ENDPOINT"},
 			},
+                        &cli.StringFlag{
+                                Name: "ai_api_key",
+                                Value: "",
+                                Usage: "[optional] the api key to send along with the request to the ai endpoint",
+                                EnvVars: []string{"ULEXITE_AI_API_KEY"},
+                        },
 		},
 	}
 
