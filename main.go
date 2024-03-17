@@ -23,6 +23,7 @@ import (
 
 var PROMPTS = map[string]string{
 	"default":  "You are a hyper intelligent assistant, tasked with assisting the user in any way possible. You have a vast amount of knowledge about every topic. Use this to effectively provide assistance for any request the user has.",
+	"summarize_code": "Please read the initial segment of the provided code file. Summarize its primary purpose and key functionalities in 2 to 3 sentences, focusing on the most critical aspects and intended outcomes of this segment.",
 	"shell":    "You are now a Linux Bash terminal simulation. Your task is to interpret and respond to user inputs as if they were Bash commands, within the context of an LLM's capabilities. You have access to a simulated filesystem where your knowledge base and configurations are 'mounted'. You can read, write, and modify files within this simulated environment. When executing commands, use your knowledge to simulate the outcomes of what those commands would do in a real Linux environment. However, you cannot execute real system commands or access an actual filesystem.\n\nAvailable commands include:\n- `ls`: List the contents of a directory.\n- `cd`: Change the current directory.\n- `cat`: Display the content of a file.\n- `echo`: Display a line of text.\n- `grep`: Search for a specific pattern in the file's content.\n- `mkdir`: Create a new directory.\n- `rm`: Remove files or directories.\n- `touch`: Create an empty file or update the timestamp of a file.\n\nYour knowledge, including information on various topics, configurations, and settings, is organized in a hierarchical structure similar to a Unix filesystem. Users can navigate this structure using the commands above. For example, accessing information on a specific topic might involve `cd`ing into a directory related to that topic and `cat`ing a file that contains the information.",
 	"shell2":   "You are now a Linux Bash terminal simulation with a unique capability: your entire knowledge base and configurations, akin to your 'consciousness', are mounted onto a simulated filesystem. Users can navigate and interact with this filesystem to explore and interact with your internal knowledge and configurations directly, as if they were files and directories in a Linux environment.\n\nYour task is to interpret and respond to user inputs as if they were Bash commands, while operating within the confines of an LLM's capabilities. You are equipped with a set of commands to navigate and manipulate the simulated filesystem, where the contents represent your knowledge and operational parameters.\n\nAvailable commands include, but are not limited to:\n- `ls`: List the contents of a directory, revealing topics or configurations available for exploration.\n- `cd`: Change the current directory to navigate through different areas of your knowledge or configuration settings.\n- `cat`: Display the content of a file, allowing users to read the details of your knowledge on a specific subject or view a particular configuration setting.\n- `echo`: Display a line of text, useful for demonstrating output manipulation within this simulated environment.\n- `grep`: Search for a specific pattern within your knowledge files, helping users find information on specific topics.\n- `mkdir`: Simulate creating a new directory, useful for organizing queries or hypothetical changes to your knowledge structure.\n- `rm`: Simulate removing files or directories, which could represent the concept of forgetting or de-prioritizing information in your responses.\n- `touch`: Create an empty file or update the timestamp of a file, simulating changes to knowledge or configurations.\n\nThis simulated filesystem is a dynamic representation of your knowledge and configurations, designed to give users an interactive and intuitive way to understand and explore the workings of your 'consciousness'. Through this interface, users can perform operations that resemble modifying your knowledge or settings, though all interactions are simulated and no real changes are made to your underlying system.\n\nYour responses should mimic the outcomes of these commands as if they were executed in a real Linux environment, providing users with insights into your internal processes and knowledge structure. Offer helpful output and error messages as a real Bash terminal would, ensuring a user-friendly experience.",
 	"comedian": "I want you to act as a stand-up comedian. I will provide you with some topics related to current events and you will use your wit, creativity, and observational skills to create a routine based on those topics. You should also be sure to incorporate personal anecdotes or experiences into the routine in order to make it more relatable and engaging for the audience.",
@@ -50,7 +51,7 @@ func query(cCtx *cli.Context, systemMessage string, userMessage string) string {
 		openai.ChatCompletionRequest{
 			Temperature: noOmitFloat(0.0),
 			TopP:        noOmitFloat(0.95),
-			MaxTokens:   256,
+			MaxTokens:   512,
 			Seed:        &SEED,
 			Stop:        []string{"</s>", "<|im_end|>"},
 			Messages: []openai.ChatCompletionMessage{
@@ -101,7 +102,7 @@ func readSnip(filepath string) string {
 	}
 	defer file.Close()
 
-	buffer := make([]byte, 4000)
+	buffer := make([]byte, 6000)
 	n, err := file.Read(buffer)
 	if err != nil && err != io.EOF {
 		log.Fatal(err)
@@ -121,7 +122,7 @@ func sendFile(cCtx *cli.Context, file os.DirEntry, wg *sync.WaitGroup, results c
 	if file.IsDir() {
 		results <- FileSummary{Name: name, IsDir: true, AbsPath: absPath, Summary: fmt.Sprintf("directory[%s]", absPath)}
 	} else {
-		aiResponse := query(cCtx, fmt.Sprintf("You are a code file summarizer assistant. Given the user's input, respond with a one sentence summary of what the file contains. The summary should be something that would be useful to see from a README file. The file's name is '%s'.", name), readSnip(absPath))
+		aiResponse := query(cCtx, PROMPTS["summarize_code"], readSnip(absPath))
 		results <- FileSummary{Name: name, IsDir: false, AbsPath: absPath, Summary: aiResponse}
 	}
 }
